@@ -35,31 +35,25 @@ enum eModes {
 int main(int argc, char* argv[])
 {
 	if (argc == 1) {
-		std::cout << "Usage: paktool <params> <file/folder>\n"
-			<< "    -c  Creates archive from a folder\n"
-			<< "    -e  Extracts archive\n";
+		std::cout << "Usage: paktool <file/folder>\n";
 		return 1;
 	}
 
 	int mode = 0;
 
-	// params
-	for (int i = 1; i < argc - 1; i++)
+	std::string input = argv[argc - 1];
+
+	if (!std::filesystem::exists(input))
 	{
-		if (argv[i][0] != '-' || strlen(argv[i]) != 2) {
-			return 1;
-		}
-		switch (argv[i][1])
-		{
-		case 'e': mode = MODE_EXTRACT;
-			break;
-		case 'c': mode = MODE_CREATE;
-			break;
-		default:
-			std::cout << "ERROR: Param does not exist: " << argv[i] << std::endl;
-			break;
-		}
+		std::cout << "ERROR: " << input << " does not exist!" << std::endl;
+		return 1;
 	}
+
+	if (std::filesystem::is_directory(input))
+		mode = MODE_CREATE;
+	else
+		mode = MODE_EXTRACT;
+
 
 	if (mode == MODE_EXTRACT)
 	{
@@ -98,6 +92,10 @@ int main(int argc, char* argv[])
 
 			std::string name;
 			std::getline(pFile, name, '\0');
+
+			if (name[0] == '\\')
+				name = name.substr(1, name.length() - 1);
+		
 			Names.push_back(name);
 		}
 
@@ -123,15 +121,16 @@ int main(int argc, char* argv[])
 
 	if (mode == MODE_CREATE)
 	{
-		std::filesystem::path folder(argv[argc - 1]);
+		input = splitString(input, true);
+		std::filesystem::path folder(input);
 
 		if (!std::filesystem::exists(folder))
 		{
-			std::cout << "ERROR: Could not open directory: " << argv[argc - 1] << "!" << std::endl;
+			std::cout << "ERROR: Could not open directory: " << folder.string() << "!" << std::endl;
 			return 1;
 		}
 
-		std::cout << "Processing folder: " << argv[argc - 1] << std::endl;
+		std::cout << "Processing folder: " << folder.string() << std::endl;
 
 
 		std::vector<std::string> Names;
@@ -141,7 +140,12 @@ int main(int argc, char* argv[])
 		{
 			if (!std::filesystem::is_directory(file))
 			{
-				Names.push_back(file.path().string());
+				std::string fileName = file.path().string();
+				if (!(fileName[0] == '\\'))
+					fileName.insert(0, "\\");
+				Names.push_back(fileName);
+
+					
 				Sizes.push_back(file.file_size());
 			}
 		}
@@ -173,7 +177,7 @@ int main(int argc, char* argv[])
 		pak.stringSize = stringSize;
 
 
-		std::string str = "output";
+		std::string str = folder.string();
 		str += ".pak";
 
 		std::ofstream oFile(str, std::ofstream::binary);
