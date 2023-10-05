@@ -141,11 +141,8 @@ int main(int argc, char* argv[])
 			if (!std::filesystem::is_directory(file))
 			{
 				std::string fileName = file.path().string();
-				if (!(fileName[0] == '\\'))
-					fileName.insert(0, "\\");
 				Names.push_back(fileName);
-
-					
+		
 				Sizes.push_back(file.file_size());
 			}
 		}
@@ -159,6 +156,10 @@ int main(int argc, char* argv[])
 		for (int i = 0; i < Names.size(); i++)
 		{
 			int len = Names[i].length() + 1;
+			// + 1 for slash thats added later
+			if (!(Names[i][0] == '\\'))
+				len += 1;
+
 			int pad = makePad(len, 4);
 #ifdef _DEBUG
 			std::cout << Names[i].c_str() << " ";
@@ -207,6 +208,7 @@ int main(int argc, char* argv[])
 		int baseOffset = sizeof(pak_header);
 		int baseStringOffset = 0;
 
+
 		for (int i = 0; i < Names.size(); i++)
 		{
 			pak_entry pak;
@@ -214,6 +216,9 @@ int main(int argc, char* argv[])
 			pak.size = Sizes[i];
 			pak.stringOffset = baseStringOffset;
 			oFile.write((char*)&pak, sizeof(pak_entry));
+
+			if (!(Names[i][0] == '\\'))
+				Names[i].insert(0, "\\");
 
 			baseOffset += Sizes[i];
 			baseStringOffset += makePad(Names[i].length() + 1, 4);
